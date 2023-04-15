@@ -156,6 +156,9 @@ if __name__ == "__main__":
         sys.exit(1)
     app, in_folder, out_folder = sys.argv
 
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+
     model = NKF(L=4)
 
     numparams = 0
