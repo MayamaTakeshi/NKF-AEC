@@ -193,3 +193,4 @@ if __name__ == "__main__":
             s_hat = model(x, y)
 
         sf.write(os.path.join(out_folder, out_filename), s_hat.cpu().numpy(), sr)
+        print(src_filename + " processed successfully")
