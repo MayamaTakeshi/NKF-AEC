@@ -169,16 +169,16 @@ if __name__ == "__main__":
     model.eval()
 
     for i in os.scandir(in_folder):
-        if not i.is_file() or not i.name.endswith('_ech.wav'):
+        if not i.is_file() or not i.name.endswith('.src.wav'):
             continue
-        echo_src_filename = i.name
-        print("Processing", echo_src_filename)
+        src_filename = i.name
+        print("Processing", src_filename)
 
-        in_filename = echo_src_filename[:-8] + "_src.wav"
-        out_filename = echo_src_filename[:-8] + "_aec.wav"
+        echo_src_filename = src_filename[:-8] + ".ech.wav"
+        out_filename = src_filename[:-8] + ".nkf_aec.wav"
 
         x, sr = sf.read(os.path.join(in_folder, echo_src_filename))
-        y, sr = sf.read(os.path.join(in_folder, in_filename))
+        y, sr = sf.read(os.path.join(in_folder, src_filename))
         x = torch.from_numpy(x).float()
         y = torch.from_numpy(y).float()
 
