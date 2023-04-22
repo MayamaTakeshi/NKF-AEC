@@ -15,56 +15,24 @@ specific language governing permissions and limitations under the License.
 '''
 import torch
 import torch.nn as nn
-import soundfile as sf
+import soundfile as sf # mu-law
 from utils import gcc_phat
 import argparse
 import numpy as np
 import wave
 import mycodecs
 
-exp_lut = [0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,
-           4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
-           5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
-           5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
-           6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-           6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-           6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-           6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-           7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7]
+#def setcomptype_ulaw(self, type, name):
+#    if type != "ULAW":
+#        raise ValueError("unsupported compression type")
+#    self._comptype = type
+#    self._compname = name
+#
+# monkeypatch
+#wave.Wave_write.setcomptype = setcomptype_ulaw
 
-BIAS = 0x84   # define the add-in bias for 16 bit samples
-CLIP = 32635
-
-def linear2ulaw(sample):
-    # Get the sample into sign-magnitude.
-    sign = (sample >> 8) & 0x80      # set aside the sign
-    if sign != 0:
-        sample = -sample            # get magnitude
-    if sample > CLIP:
-        sample = CLIP               # clip the magnitude
-
-    # Convert from 16 bit linear to ulaw.
-    sample = sample + BIAS
-    exponent = exp_lut[(sample >> 7) & 0xFF]
-    mantissa = (sample >> (exponent + 3)) & 0x0F
-    ulawbyte = ~(sign | (exponent << 4) | mantissa)
-
-    # optional CCITT trap
-    if ulawbyte == 0:
-        ulawbyte = 0x02
-
-    return ulawbyte
-
-
-#v_linear2ulaw = np.vectorize(mycodecs.linear2ulaw, otypes=[np.uint8])
-v_linear2ulaw = np.vectorize(linear2ulaw, otypes=[np.uint8])
+v_linear2ulaw = np.vectorize(mycodecs.linear2ulaw, otypes=[np.uint8])
+v_linear2alaw = np.vectorize(mycodecs.linear2alaw, otypes=[np.uint8])
 
 class ComplexGRU(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, bias=True, dropout=0,
@@ -190,20 +158,29 @@ class NKF(nn.Module):
 
 def usage():
     print("""
-Usage: %(app)s input_folder output_folder
-Ex:    %(app)s in_folder/ out_folder/
+Usage: %(app)s input_folder output_folder output_format
+Ex:    %(app)s in_folder/ out_folder/ ULAW
+
+Details:
+      - output_format can be: ULAW, ALAW, PCM_16 or SAME_AS_INPUT
 """ % {"app": sys.argv[0]})
 
 if __name__ == "__main__":
     import os
     import sys
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         usage()
         sys.exit(1)
-    app, in_folder, out_folder = sys.argv
+
+    app, in_folder, out_folder, output_format = sys.argv
 
     if not os.path.exists(out_folder):
         os.makedirs(out_folder)
+
+    if not output_format in ['ULAW', 'ALAW', 'PCM_16', 'SAME_AS_INPUT']:
+        sys.stderr.write("Invalid output_format " + output_format)
+        usage()
+        sys.exit(1)
 
     model = NKF(L=4)
 
@@ -224,12 +201,18 @@ if __name__ == "__main__":
         out_filename = src_filename[:-8] + ".nkf_aec.wav"
 
         x, sr = sf.read(os.path.join(in_folder, echo_src_filename))
-        y, sr = sf.read(os.path.join(in_folder, src_filename))
-        print("src audio", y)
+        #y, sr = sf.read(os.path.join(in_folder, src_filename))
+
+        with sf.SoundFile(os.path.join(in_folder, src_filename), 'r') as file:
+           input_format = file.subtype
+           y = file.read()
+
+        print("input_format", input_format)
+        if output_format == 'SAME_AS_INPUT':
+            output_format = input_format
 
         x = torch.from_numpy(x).float()
         y = torch.from_numpy(y).float()
-        print("src tensor", y)
 
         align = True
 
@@ -241,95 +224,34 @@ if __name__ == "__main__":
         with torch.no_grad():
             s_hat = model(x, y)
 
-        encode_mulaw  = True
-
-        if encode_mulaw:
-            # this produces static
-            #mu_law_data = np.sign(s_hat.cpu().numpy()) * np.log1p(255 * np.abs(s_hat.cpu().numpy())) / np.log1p(255)
-            #mu_law_data = (mu_law_data + 1) * 128
-            #mu_law_data = np.clip(mu_law_data, 0, 255).astype(np.uint8)
-            #mu_law_data = (mu_law_data * 32767).astype('int16')  # convert to int16
-            #mu_law_data = mu_law_data.byteswap()
-
-            # this one works but amplitude is increased
-            #mu_law_data = np.sign(s_hat.cpu().numpy()) * np.log1p(255 * np.abs(s_hat.cpu().numpy())) / np.log1p(255)
-            #mu_law_data = (mu_law_data + 1) * 128 - 128
-            #mu_law_data = np.clip(mu_law_data, -128, 127).astype(np.int8)
-            #mu_law_data = mu_law_data
-            #mu_law_data = (mu_law_data * 32767).astype('int16')  # convert to int16
-            #mu_law_data = mu_law_data.byteswap()
-
-
-            # this one also works but amplitude also increases
-            #s_norm = s_hat.cpu().numpy() / np.abs(s_hat.cpu().numpy()).max()
-            #mu_law_data = np.sign(s_norm) * np.log1p(255 * np.abs(s_norm)) / np.log1p(255)
-            #mu_law_data = (mu_law_data + 1) / 2 * 255 - 128
-            #mu_law_data = np.clip(mu_law_data, -128, 127).astype(np.int8)
-            #mu_law_data = (mu_law_data * 32767).astype('int16')
-            #mu_law_data = mu_law_data.byteswap()
-
-            # this produces static
-            #mu_law_data = np.sign(s_hat.cpu().numpy()) * np.log1p(255 * np.abs(s_hat.cpu().numpy())) / np.log1p(255)
-            #mu_law_data = (mu_law_data + 1) * 128 - 128
-            #mu_law_data /= np.max(np.abs(mu_law_data))
-            #mu_law_data = (mu_law_data * 32767).astype('int16')
-            #mu_law_data = mu_law_data.byteswap()
-
-
-            # writing to raw is almost OK
-            print("s_hat", s_hat)
-            print("s_hat.cpu()", s_hat.cpu())
-            print("s_hat.cpu().numpy()", s_hat.cpu().numpy())
-            print("s_hat.numpy().astype('int16')", s_hat.numpy().astype('int16'))
+        
+        if output_format in ['ULAW', 'ALAW']:
+            # need to scale data to int16 range    
             s_hat_scaled = (s_hat * 32767).clamp(-32768, 32767)
-            print("s_hat_scaled", s_hat_scaled)
+            # get as array of int16 
             b = s_hat_scaled.cpu().numpy().astype('int16')
-            print("b", b)
-            mu_law_data = v_linear2ulaw(b)
-            #mu_law_data[::2], mu_law_data[1::2] = mu_law_data[1::2], mu_law_data[::2].copy()
+            # convert from linear to mu-law or a-law
+            if output_format == 'ULAW': 
+                format_id = 7
+                data = v_linear2ulaw(b)
+            else:
+                format_id = 6
+                data = v_linear2alaw(b)
 
-            f = open(os.path.join(out_folder, 'a.raw'), 'wb')
-            f.write(mu_law_data)
-            f.close()
-
-            # this gets distortion
-            #s_hat_normalized = s_hat / torch.max(torch.abs(s_hat))
-            # scale the data to the range [-32768, 32767]
-            #s_hat_scaled = (s_hat_normalized * 32767).clamp(-32768, 32767)
-            # convert to int16
-            #b = s_hat_scaled.cpu().numpy().astype('int16')
-            # apply mu-law encoding
-            #mu_law_data = v_linear2ulaw(b)
-            # convert back to int16 and swap endianness
-            #mu_law_data = mu_law_data.astype('int16').byteswap()
-
-            #print(mu_law_data)
-
-            # Write the audio to file as mu-law
-            #with sf.SoundFile(os.path.join(out_folder, out_filename), mode='w', channels=1, samplerate=8000, subtype='ULAW', endian='LITTLE', format='WAV') as file:
-            #    file.write(mu_law_data)
-
-            #mu_law_data = s_hat.cpu().numpy()
-
-            #mu_law_data = np.sign(mu_law_data) * np.log1p(255 * np.abs(mu_law_data)) / np.log1p(256)
-            #mu_law_data = np.uint8(np.round((mu_law_data + 1) / 2 * 255))
-
-            # convert ulaw_data to little-endian byte order
-            #mu_law_data_= mu_law_data.byteswap()
-
-
-            #with wave.open(os.path.join(out_folder, out_filename), 'w') as wav_file:
-            #    wav_file.setnchannels(1)
-           #    wav_file.setsampwidth(1)
-           #     wav_file.setframerate(sr)
-           #     wav_file.setcomptype('NONE', 'ULAW')
-           #     wav_file.writeframes(mu_law_data)
-
-
+            data_= data.byteswap()
+            with wave.open(os.path.join(out_folder, out_filename), 'w') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(1)
+                wav_file.setframerate(sr)
+                wav_file.setcomptype('NONE', 'NONE')
+                wav_file.writeframes(data)
+                # we need to adjust the audio format as module wave doesn't support other formats aside from PCM_16 (1)
+                wav_file._file.seek(20)
+                wav_file._file.write((format_id).to_bytes(2, 'little'))
         else: 
             import sys
-            for i in s_hat.cpu().numpy():
-                sys.stdout.write(str(i) + " ")
+            #for i in s_hat.cpu().numpy():
+            #    sys.stdout.write(str(i) + " ")
             sf.write(os.path.join(out_folder, out_filename), s_hat.cpu().numpy(), sr)
 
         print(src_filename + " processed successfully")
