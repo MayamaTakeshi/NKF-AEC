@@ -14,11 +14,25 @@ You start it like this:
 $ python3 nkf_aec_server.py /tmp/nkf_aec_server0
 listening on /tmp/nkf_aec_server0
 
-Then you can test it by connecting to the unix socket and send a request in the format: "AEC:SRC_FILEPATH;ECHO_FILEPATH;OUTPUT_FILEPATH;OUTPUT_FORMAT\n"
+Then you can test it by connecting to the unix socket and send a request in the format: "AEC:SRC_FILEPATH;ECHO_FILEPATH;OUTPUT_FILEPATH;OUTPUT_FORMAT\\n"
 
 Ex:
 
 $ echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | nc -U /tmp/nkf_aec_server0 
+ok
+
+To try multiple requests (they will be queued), use socat:
+
+takeshi@takeshi-desktop:~/src/git/MayamaTakeshi/NKF-AEC/src$ for i in $(seq 1 10);do echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | socat -t 3 - unix:/tmp/nkf_aec_server0;done
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
 ok
 
 """ % {"app": sys.argv[0]})
@@ -51,7 +65,7 @@ if __name__ == "__main__":
     while True:
         # Wait for a client to connect
         conn, addr = sock.accept()
-        print('Connected by', addr)
+        print('Connected.')
 
         # Receive data from the client
         data = conn.recv(4096)
