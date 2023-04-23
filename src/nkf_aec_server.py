@@ -38,8 +38,11 @@ ok
 """ % {"app": sys.argv[0]})
 
 def send_response(conn, response):
-    print("Response:", response)
-    conn.sendall(response)
+    try:
+        print("Response:", response)
+        conn.sendall(response)
+    except Exception as e:
+        print("Failed while sending response", e)
 
 if __name__ == "__main__":
     import os
@@ -88,6 +91,6 @@ if __name__ == "__main__":
                     nkf_aec_core.remove_echo(model, src_filepath, echo_filepath, output_filepath, output_format)
                     response = b"ok\n"
                 except Exception as e:
-                    response = bytes("error:" + str(e), 'utf-8')
+                    response = bytes("error:" + str(e) + "\n", 'utf-8')
             send_response(conn, response)
 
