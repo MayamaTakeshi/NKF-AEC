@@ -153,12 +153,14 @@ def create_model():
     numparams = 0
     for f in model.parameters():
         numparams += f.numel()
-    print('Total number of parameters: {:,}'.format(numparams))
+    #print('Total number of parameters: {:,}'.format(numparams))
     model.load_state_dict(torch.load('./nkf_epoch70.pt'), strict=True)
     model.eval()
     return model
 
 def remove_echo(model, src_filepath, echo_filepath, output_filepath, output_format):
+    if not output_format in ['ULAW', 'ALAW', 'PCM_16']:
+        raise Exception('invalid output_format ' + output_format)
     x, sr = sf.read(echo_filepath)
 
     with sf.SoundFile(src_filepath, 'r') as file:
@@ -180,6 +182,8 @@ def remove_echo(model, src_filepath, echo_filepath, output_filepath, output_form
 
     with torch.no_grad():
         s_hat = model(x, y)
+
+    print("output_format", output_format)
 
     if output_format in ['ULAW', 'ALAW']:
         # need to scale data to int16 range    
@@ -207,4 +211,4 @@ def remove_echo(model, src_filepath, echo_filepath, output_filepath, output_form
     else: 
         sf.write(output_filepath, s_hat.cpu().numpy(), sr)
 
-    print("Result file", output_filepath, "succssfully generated")
+    print("Result file", output_filepath, "successfully generated")
