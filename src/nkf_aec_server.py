@@ -23,7 +23,7 @@ ok
 
 To try multiple requests (they will be queued), use socat:
 
-takeshi@takeshi-desktop:~/src/git/MayamaTakeshi/NKF-AEC/src$ for i in $(seq 1 10);do echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | socat -t 3 - unix:/tmp/nkf_aec_server0;done
+$ for i in $(seq 1 10);do echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | socat -t 3 - unix:/tmp/nkf_aec_server0;done
 ok
 ok
 ok
