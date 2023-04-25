@@ -1,4 +1,6 @@
 import argparse
+import os
+import sys
 
 def usage():
     print("""
@@ -9,9 +11,7 @@ Details:
       - output_format can be: ULAW, ALAW, PCM_16 or SAME_AS_INPUT
 """ % {"app": sys.argv[0]})
 
-if __name__ == "__main__":
-    import os
-    import sys
+def main():
     if len(sys.argv) != 4:
         usage()
         sys.exit(1)
@@ -26,7 +26,13 @@ if __name__ == "__main__":
         usage()
         sys.exit(1)
 
-    import nkf_aec_core # importing this is slow so we leave it to be done after all checks pass
+    try:
+        # Attempt a relative import first
+        from . import nkf_aec_core
+    except ImportError:
+        # If the relative import fails, try an absolute import
+        import nkf_aec_core
+
     model = nkf_aec_core.create_model()
 
     for i in os.scandir(in_folder):
@@ -45,3 +51,6 @@ if __name__ == "__main__":
         nkf_aec_core.remove_echo(model, src_filepath, echo_filepath, output_filepath, output_format)
         print("Processing", src_filepath, "completed successfully")
 
+
+if __name__ == "__main__":
+    main()

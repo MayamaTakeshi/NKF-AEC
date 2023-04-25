@@ -13,14 +13,26 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 '''
+import os
 import torch
 import torch.nn as nn
 import soundfile as sf # mu-law
-from utils import gcc_phat
 import numpy as np
 import wave
 
-import mycodecs
+try:
+    # Attempt a relative import first
+    import utils
+except ImportError:
+    # If the relative import fails, try an absolute import
+    from nkf_aec_tools import utils
+
+try:
+    # Attempt a relative import first
+    import mycodecs
+except ImportError:
+    # If the relative import fails, try an absolute import
+    from nkf_aec_tools import mycodecs 
 
 v_linear2ulaw = np.vectorize(mycodecs.linear2ulaw, otypes=[np.uint8])
 v_linear2alaw = np.vectorize(mycodecs.linear2alaw, otypes=[np.uint8])
@@ -153,8 +165,15 @@ def create_model():
     numparams = 0
     for f in model.parameters():
         numparams += f.numel()
+
+    # get the absolute path to the package directory
+    package_directory = os.path.dirname(os.path.abspath(__file__))
+
+    # define the path to the nkf_epoch70.pt file
+    model_path = os.path.join(package_directory, 'nkf_epoch70.pt')
+
     #print('Total number of parameters: {:,}'.format(numparams))
-    model.load_state_dict(torch.load('./nkf_epoch70.pt'), strict=True)
+    model.load_state_dict(torch.load(model_path), strict=True)
     model.eval()
     return model
 
@@ -176,7 +195,7 @@ def remove_echo(model, src_filepath, echo_filepath, output_filepath, output_form
     align = True # force align
 
     if align:
-        tau = gcc_phat(y[:sr * 10], x[:sr * 10], fs=sr, interp=1)
+        tau = utils.gcc_phat(y[:sr * 10], x[:sr * 10], fs=sr, interp=1)
         tau = max(0, int((tau - 0.001) * sr))
         x = torch.cat([torch.zeros(tau), x])[:y.shape[-1]]
 

@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import socket
 
 def usage():
@@ -44,9 +45,7 @@ def send_response(conn, response):
     except Exception as e:
         print("Failed while sending response", e)
 
-if __name__ == "__main__":
-    import os
-    import sys
+def main():
     if len(sys.argv) != 2:
         usage()
         sys.exit(1)
@@ -56,7 +55,13 @@ if __name__ == "__main__":
     if os.path.exists(unix_socket_path):
         os.remove(unix_socket_path)
 
-    import nkf_aec_core # importing this is slow so we leave it to be done when we are ready to start
+    try:
+        # Attempt a relative import first
+        from . import nkf_aec_core
+    except ImportError:
+        # If the relative import fails, try an absolute import
+        import nkf_aec_core
+
     model = nkf_aec_core.create_model()
 
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -94,3 +99,5 @@ if __name__ == "__main__":
                     response = bytes("error:" + str(e) + "\n", 'utf-8')
             send_response(conn, response)
 
+if __name__ == "__main__":
+    main()
