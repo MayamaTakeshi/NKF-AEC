@@ -4,12 +4,12 @@ import sys
 
 def usage():
     print("""
-Usage: %(app)s input_folder output_folder output_format
-Ex:    %(app)s in_folder/ out_folder/ ULAW
+Usage: dir-nkf-aec input_folder output_folder output_format
+Ex:    dir-nkf-aec in_folder/ out_folder/ ULAW
 
 Details:
       - output_format can be: ULAW, ALAW, PCM_16 or SAME_AS_INPUT
-""" % {"app": sys.argv[0]})
+""")
 
 def main():
     if len(sys.argv) != 4:

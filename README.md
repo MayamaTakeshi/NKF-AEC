@@ -1,18 +1,9 @@
-# NKF-AEC
-This is the official repository of our work "Low-Complexity Acoustic Echo Cancellation with Neural Kalman Filtering" [[arXiv](https://arxiv.org/abs/2207.11388)]. (Accepted by ICASSP 2023)\
-:point_right: More results are shown on our [**Demo website**](https://fjiang9.github.io/NKF-AEC/).
-## AEC Inference with the pre-trained model
-The inference code and pre-trained model of NKF-AEC is released in the [_src_](https://github.com/fjiang9/NKF-AEC/tree/gh-pages/src) folder. Try NKF-AEC by running:
-```
-python nkf.py -x ref.wav -y mic.wav -o res.wav
-```
-Note: 
-- NKF-AEC is a linear acoustic echo canceller.
-- Time delay compensation (TDC) is necessary before running NKF if the time delay is significant (e.g., the ICASSP 2021 AEC challenge blind test set), which can be done by the [GCC-PHAT algorithm](https://ieeexplore.ieee.org/document/1162830), the [audio fingerprinting technology](https://ieeexplore.ieee.org/document/6309461), or the *WebRtcAecm_AlignedFarend* function in [WebRTC](https://webrtc.googlesource.com/src//+/eea928836755bd37dbe8ef058ca4856422d90eec/modules/audio_processing/aecm/aecm_core.h?autodive=0%2F%2F%2F%2F). In such scenarios, just add the __-a__ argument to the above command.
-- The training data of the pre-trained model are derived from a small part of the AEC challenge corpus, which is introduced in the paper.
-- The sampling rate of the audio is supposed to be 16 kHz.
-## Cite our work
-If you find this repository helpful, please cite our work:
+# nkf-aec-tools
+
+## Overview
+
+This is a fork of https://github.com/fjiang9/NKF-AEC
+
 ```
 @article{
  yang2022low,
@@ -22,3 +13,57 @@ If you find this repository helpful, please cite our work:
  year={2022}
 }
 ```
+
+I have refactored the code and added some scripts to simplify its use. 
+
+## Installation
+
+I have prepared a package definition so that the tools can be installed this way:
+```
+pip3 install git+https://github.com/MayamaTakeshi/NKF-AEC@nkf_aec_tools
+```
+
+## Tools
+
+### nkf-aec
+
+Process a single src and echo file.
+
+### dir-nkf-aec
+
+Process a folder containing src and echo files (src files must end with .src.wav, and echo files must end with .ech.wav)
+
+### nkf-aec-server
+
+server app that listens to a Unix socket to accept requests to perform AEC.
+
+You can start it like this:
+```
+$ python3 nkf_aec_server.py /tmp/nkf_aec_server0
+listening on /tmp/nkf_aec_server0
+```
+
+Then you can test it by connecting to the unix socket and send a request in the format: "AEC:SRC_FILEPATH;ECHO_FILEPATH;OUTPUT_FILEPATH;OUTPUT_FORMAT\\n"
+
+Ex:
+```
+$ echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | nc -U /tmp/nkf_aec_server0
+ok
+```
+
+To try multiple requests (they will be queued), use socat:
+```
+$ for i in $(seq 1 10);do echo "AEC:/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.src.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/in_mulaw/call.ech.wav;/home/takeshi/src/git/MayamaTakeshi/NKF-AEC/src/out/call.nkf_aec.wav;ULAW" | socat -t 3 - unix:/tmp/nkf_aec_server0;done
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+```
+
+

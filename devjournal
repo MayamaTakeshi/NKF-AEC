@@ -115,3 +115,18 @@ unsigned char ulawbyte;
   return(sample);
 
 Ref: http://svr-www.eng.cam.ac.uk/comp.speech/Section2/Q2.7.html
+
+----------------------------------------------------
+2023/04/22 takeshi
+
+Cheatsheet for package development:
+
+To install package from dev folder:
+
+pip3 install .
+
+To remove the package:
+
+pip3 uninstall nkf-aec-tools
+
+

@@ -9,9 +9,9 @@ setup(
     packages=["nkf_aec_tools"],
     entry_points={
         "console_scripts": [
-            "nkf_aec=nkf_aec_tools.nkf_aec:main",
-            "dir_nkf_aec=nkf_aec_tools.dir_nkf_aec:main",
-            "nkf_aec_server=nkf_aec_tools.nkf_aec_server:main",
+            "nkf-aec=nkf_aec_tools.nkf_aec:main",
+            "dir-nkf-aec=nkf_aec_tools.dir_nkf_aec:main",
+            "nkf-aec-server=nkf_aec_tools.nkf_aec_server:main",
         ]
     },
     include_package_data=True
