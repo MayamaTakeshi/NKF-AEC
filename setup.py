@@ -14,6 +14,10 @@ setup(
             "nkf-aec-server=nkf_aec_tools.nkf_aec_server:main",
         ]
     },
+    install_requires=[
+        "torch==1.9.0+cpu",
+        "torchvision==0.10.0+cpu",
+        "soundfile",
+    ],
     include_package_data=True
 )
-
