@@ -15,8 +15,6 @@ setup(
         ]
     },
     install_requires=[
-        "torch==1.9.0+cpu",
-        "torchvision==0.10.0+cpu",
         "soundfile",
     ],
     include_package_data=True

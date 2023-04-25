@@ -23,6 +23,12 @@ I have prepared a package definition so that the tools can be installed this way
 # first install dependencies
 apt install zlib1g-dev libjpeg-dev libffi-dev
 
+# install pytorch
+pip3 install torch
+
+# if the above fails, try
+pip3 install torch==1.9.0+cpu torchvision==0.10.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+
 # then install nkf_aec_tools
 pip3 install git+https://github.com/MayamaTakeshi/NKF-AEC@nkf_aec_tools
 ```
