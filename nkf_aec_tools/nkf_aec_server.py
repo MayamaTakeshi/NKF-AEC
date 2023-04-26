@@ -9,7 +9,7 @@ def usage():
 This is a server application that listens on a unix socket for AEC requests.
 
 Usage: nkf-aec-server unix_socket_path
-Ex:    nkf-aec-server /tmp/nkf_aec_server0
+Ex:    nkf-aec-server /tmp/nkf-aec-server0
 """)
 
 def send_response(conn, response):
@@ -56,7 +56,7 @@ def main():
             send_response(conn, b"err:no request\n")
         elif not data.startswith(b"AEC:"):
             encoded = urllib.parse.quote(data) 
-            send_response(conn, bytes("error:invalid request (" + encoded + ")\n", 'utf-8'))
+            send_response(conn, bytes("error: %s got invalid request (%s)\n" % (unix_socket_path, encoded), 'utf-8'))
         else:
             data = data.strip()
             print("Request:", data)
@@ -65,14 +65,14 @@ def main():
 
             if len(tokens) != 4:
                 encoded = urllib.parse.quote(data) 
-                response = bytes("error:invalid parameters (" + encoded + ")\n", 'utf-8') 
+                response = bytes("error: %s got invalid parameters (%s)\n" % (unix_socket_path, encoded), 'utf-8') 
             else:
                 (src_filepath, echo_filepath, output_filepath, output_format) = tokens
                 try:
                     nkf_aec_core.remove_echo(model, src_filepath, echo_filepath, output_filepath, output_format)
-                    response = b"ok\n"
+                    response = bytes("ok: from %s\n" % (unix_socket_path,), 'utf-8')
                 except Exception as e:
-                    response = bytes("error:" + str(e) + "\n", 'utf-8')
+                    response = bytes("error: %s got %s\n" %(unix_socket_path, str(e)), 'utf-8')
             send_response(conn, response)
 
 if __name__ == "__main__":
