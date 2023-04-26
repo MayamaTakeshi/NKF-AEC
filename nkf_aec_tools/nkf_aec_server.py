@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import socket
+import urllib.parse
 
 def usage():
     print("""
@@ -54,7 +55,8 @@ def main():
         if not data:
             send_response(conn, b"err:no request\n")
         elif not data.startswith(b"AEC:"):
-            send_response(conn, b"ecc:invalid request\n")
+            encoded = urllib.parse.quote(data) 
+            send_response(conn, bytes("error:invalid request (" + encoded + ")\n", 'utf-8'))
         else:
             data = data.strip()
             print("Request:", data)
@@ -62,7 +64,8 @@ def main():
             # tokens format is: src_filepath;echo_file_path;output_filepath,output_format
 
             if len(tokens) != 4:
-                response = b"error:invalid parameters\n"
+                encoded = urllib.parse.quote(data) 
+                response = bytes("error:invalid parameters (" + encoded + ")\n", 'utf-8') 
             else:
                 (src_filepath, echo_filepath, output_filepath, output_format) = tokens
                 try:
